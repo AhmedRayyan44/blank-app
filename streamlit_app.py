@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 
 # Load the trained model
-model_path = "C:\\Users\\Interface\\OneDrive\\سطح المكتب\\lgbm.joblib"
+model_path = "lgbm.joblib"
 model = joblib.load(model_path, mmap_mode='r')
 
 # Define the relevant feature columns
