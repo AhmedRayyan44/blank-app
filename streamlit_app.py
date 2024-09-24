@@ -1,6 +1,8 @@
 import streamlit as st
 import joblib
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 
 # Load the trained model
 model_path = "lgbm.joblib"
@@ -8,7 +10,7 @@ model = joblib.load(model_path, mmap_mode='r')
 
 # Define the relevant feature columns
 relevant_features = [
-     'beds', 'livings', 'wc', 'area',
+    'beds', 'livings', 'wc', 'area',
     'street_width', 'age', 'street_direction', 'ketchen',
     'furnished', 'location.lat', 'location.lng', 'city_id',
     'district_id'
@@ -22,24 +24,52 @@ def predict_price(new_record):
     predicted_price = model.predict(new_record_df)
     return predicted_price[0]
 
+# Initialize session state for latitude and longitude
+if 'location_lat' not in st.session_state:
+    st.session_state['location_lat'] = 24.7136  # Default latitude
+if 'location_lng' not in st.session_state:
+    st.session_state['location_lng'] = 46.6753  # Default longitude
+
 # Streamlit app setup
 st.title("House Price Prediction Dashboard")
 
-# Input fields for user to provide data
-beds = st.slider("Beds", 1, 10, 3)
-livings = st.slider("Living Rooms", 1, 5, 1)
-wc = st.slider("Bathrooms", 1, 5, 2)
-area = st.number_input("Area (sq meters)", 50.0, 1000.0, 150.0)
-street_width = st.number_input("Street Width (meters)", 5.0, 50.0, 20.0)
-age = st.number_input("Age (years)", 0, 100, 5)
-street_direction = st.selectbox("Street Direction", [1, 2, 3, 4])
-ketchen = st.selectbox("Kitchen", [0, 1])
-furnished = st.selectbox("Furnished", [0, 1])
-location_lat = st.number_input("Latitude", 20.0, 30.0, 24.7136)
-location_lng = st.number_input("Longitude", 40.0, 50.0, 46.6753)
+# Create three columns
+col1, col2, col3 = st.columns(3)
 
-# Define the list of district data as tuples (district_id, district_name, city)
-district_data = [
+# Column 1: Map
+with col1:
+    st.write("Select location on the map:")
+    # Define the map centered around a default location
+    m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6)
+    # Add a marker to the map that can be dragged to select a location
+    marker = folium.Marker(location=[st.session_state['location_lat'], st.session_state['location_lng']], draggable=True)
+    marker.add_to(m)
+    # Display the map and get the selected location
+    map_data = st_folium(m, width=600, height=400)
+    # Update the session state if a new location is clicked
+    if map_data and 'last_clicked' in map_data and map_data['last_clicked']:
+        st.session_state['location_lat'] = map_data['last_clicked']['lat']
+        st.session_state['location_lng'] = map_data['last_clicked']['lng']
+    # Use the session state values for display
+    st.write(f"Selected Latitude: {st.session_state['location_lat']}, Longitude: {st.session_state['location_lng']}")
+
+# Column 2: First set of input fields
+with col2:
+    # Input fields for user to provide data
+    beds = st.slider("Beds", 1, 10, 3)
+    livings = st.slider("Living Rooms", 1, 5, 1)
+    wc = st.slider("Bathrooms", 1, 5, 2)
+    area = st.number_input("Area (sq meters)", 50.0, 1000.0, 150.0)
+    street_width = st.number_input("Street Width (meters)", 5.0, 50.0, 20.0)
+
+# Column 3: Second set of input fields starting from "age"
+with col3:
+    age = st.number_input("Age (years)", 0, 100, 5)
+    street_direction = st.selectbox("Street Direction", [1, 2, 3, 4])
+    ketchen = st.selectbox("Kitchen", [0, 1])
+    furnished = st.selectbox("Furnished", [0, 1])
+    
+    district_data = [
     (3440, 'حي الاندلس', 'جدة'),
     (470, 'حي السويدي', 'الرياض'),
     (692, 'حي عتيقة', 'الرياض'),
@@ -400,47 +430,38 @@ district_data = [
     (1266, 'حي الفرسان', 'الدمام'),
     (414, 'حي الحزم', 'الرياض'),
 ]
-
-# Map city names to city IDs
-city_name_to_id = {
-    'جدة': 21,
-    'الرياض': 66,
-    'الخبر': 12,
-    'الدمام': 18,
-    # Add more mappings if needed
-}
-
-# Create a selectbox for District with district data
-selected_district = st.selectbox(
-    "Select District",
-    district_data,
-    format_func=lambda x: f"{x[1]} ({x[2]})"  # Display district_name and city
-)
-
-# Extract the district_id and city_id from the selected tuple
-district_id = selected_district[0]
-city_id = city_name_to_id[selected_district[2]]
-
-
-
-# Create a dictionary for the new record
-new_record = {
-    'beds': beds,
-    'livings': livings,
-    'wc': wc,
-    'area': area,
-    'street_width': street_width,
-    'age': age,
-    'street_direction': street_direction,
-    'ketchen': ketchen,
-    'furnished': furnished,
-    'location.lat': location_lat,
-    'location.lng': location_lng,
-    'city_id': city_id,
-    'district_id': district_id
-}
-
-# Button to trigger prediction
-if st.button("Predict"):
-    predicted_price = predict_price(new_record)
-    st.write(f"Predicted Price: {predicted_price}")
+    # Map city names to city IDs
+    city_name_to_id = {
+        'جدة': 21,
+        'الرياض': 66,
+        'الخبر': 12,
+        'الدمام': 18,
+    }
+    selected_district = st.selectbox(
+        "Select District",
+        district_data,
+        format_func=lambda x: f"{x[1]} ({x[2]})"
+    )
+    district_id = selected_district[0]
+    city_id = city_name_to_id[selected_district[2]]
+    new_record = {
+        'beds': beds,
+        'livings': livings,
+        'wc': wc,
+        'area': area,
+        'street_width': street_width,
+        'age': age,
+        'street_direction': street_direction,
+        'ketchen': ketchen,
+        'furnished': furnished,
+        'location.lat': st.session_state['location_lat'],
+        'location.lng': st.session_state['location_lng'],
+        'city_id': city_id,
+        'district_id': district_id
+    }
+    # Move the button to the end of the input fields
+    # Add spacing before the Predict button
+    st.markdown("<div style='margin-left: 40px;'></div>", unsafe_allow_html=True)
+    if st.button("Predict"):
+        predicted_price = predict_price(new_record)
+        st.metric(label="السعر المتوقع", value=f" {predicted_price:,.2f} ر.س ")
