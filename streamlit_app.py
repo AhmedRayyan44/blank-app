@@ -3,7 +3,6 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import plotly.express as px
 from PIL import Image
 
 # Page configuration
@@ -503,14 +502,7 @@ with col4:
         st.metric(label="Expected Price", value=f"SAR {predicted_price:,.2f}")
         
         # Visualization of input data
-        fig = px.bar(
-    x=['Beds', 'Living Rooms', 'Bathrooms', 'Area', 'Street Width', 'Age', 'Street Direction', 'Kitchen', 'Furnished'],
-    y=[beds, livings, wc, area, street_width, age, street_direction, ketchen, furnished],
-    labels={'x': 'Features', 'y': 'Value'},
-    title='House Features'
-)
-        st.plotly_chart(fig)
-
+       
 # Footer
 st.markdown("---")
 st.markdown("Created with ❤️ by Ahmed Rayyan")
