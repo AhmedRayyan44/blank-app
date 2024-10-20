@@ -3,110 +3,73 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import plotly.express as px
-from PIL import Image
 
-# Page configuration
-st.set_page_config(page_title="House Price Prediction", layout="wide", initial_sidebar_state="collapsed")
+# Load the trained model
+model_path = "lgbm.joblib"
+model = joblib.load(model_path, mmap_mode='r')
 
-# Custom CSS
-st.markdown("""
-<style>
-.stApp {
-    background-color: #f0f2f6;
-}
-.stButton>button {
-    color: #ffffff;
-    background-color: #4CAF50;
-    border-radius: 5px;
-}
-.stMetricLabel {
-    font-size: 20px;
-}
-.stMetricValue {
-    font-size: 40px;
-    color: #4CAF50;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# Replace the old st.cache decorator
-@st.cache_resource
-def load_model():
-    return joblib.load("lgbm.joblib")
-
-model = load_model()
-
-# Relevant features
+# Define the relevant feature columns
 relevant_features = [
-    'beds', 'livings', 'wc', 'area', 'street_width', 'age', 'street_direction', 'ketchen',
-    'furnished', 'location.lat', 'location.lng', 'city_id', 'district_id'
+    'beds', 'livings', 'wc', 'area',
+    'street_width', 'age', 'street_direction', 'ketchen',
+    'furnished', 'location.lat', 'location.lng', 'city_id',
+    'district_id'
 ]
 
-# Prediction function
+# Define the prediction function
 def predict_price(new_record):
     new_record_df = pd.DataFrame([new_record])
     new_record_df = pd.get_dummies(new_record_df, drop_first=True)
     new_record_df = new_record_df.reindex(columns=relevant_features, fill_value=0)
-    return model.predict(new_record_df)[0]
+    predicted_price = model.predict(new_record_df)
+    return predicted_price[0]
 
-# Initialize session state
+# Initialize session state for latitude and longitude
 if 'location_lat' not in st.session_state:
-    st.session_state['location_lat'] = 24.7136
+    st.session_state['location_lat'] = 24.7136  # Default latitude
 if 'location_lng' not in st.session_state:
-    st.session_state['location_lng'] = 46.6753
+    st.session_state['location_lng'] = 46.6753  # Default longitude
 
-# Main app
-st.title("🏠 House Price Prediction Dashboard")
+# Streamlit app setup
+st.title("House Price Prediction Dashboard")
 
-# Create columns for layout
-col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+# Create three columns
+col1, col2, col3 = st.columns(3)
 
 # Column 1: Map
 with col1:
-    st.subheader("📍 Select Location")
-    
-    # Create a more compact map
-    m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6, width=400, height=300)
-    marker = folium.Marker(
-        location=[st.session_state['location_lat'], st.session_state['location_lng']],
-        draggable=True
-    )
+    st.write("Select location on the map:")
+    # Define the map centered around a default location
+    m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6)
+    # Add a marker to the map that can be dragged to select a location
+    marker = folium.Marker(location=[st.session_state['location_lat'], st.session_state['location_lng']], draggable=True)
     marker.add_to(m)
-    
-    # Display the map with fixed dimensions
-    map_data = st_folium(m, width=400, height=300)
-    
-    if map_data['last_clicked']:
+    # Display the map and get the selected location
+    map_data = st_folium(m, width=600, height=400)
+    # Update the session state if a new location is clicked
+    if map_data and 'last_clicked' in map_data and map_data['last_clicked']:
         st.session_state['location_lat'] = map_data['last_clicked']['lat']
         st.session_state['location_lng'] = map_data['last_clicked']['lng']
-    
-    st.write(f"Selected Location: {st.session_state['location_lat']:.4f}, {st.session_state['location_lng']:.4f}")
-# Column 2 & 3: Input fields
+    # Use the session state values for display
+    st.write(f"Selected Latitude: {st.session_state['location_lat']}, Longitude: {st.session_state['location_lng']}")
+
+# Column 2: First set of input fields
 with col2:
-    with st.expander("🏠 House Details", expanded=True):
-        beds = st.slider("Beds 🛏️", 1, 10, 3, help="Number of bedrooms")
-        livings = st.slider("Living Rooms 🛋️", 1, 5, 1, help="Number of living rooms")
-        wc = st.slider("Bathrooms 🚽", 1, 5, 2, help="Number of bathrooms")
-        area = st.number_input("Area (sq meters) 📏", 50.0, 1000.0, 150.0, help="Total area in square meters")
-        street_width = st.number_input("Street Width (meters) 🛣️", 5.0, 50.0, 20.0, help="Width of the street in meters")
+    # Input fields for user to provide data
+    beds = st.slider("Beds", 1, 10, 3)
+    livings = st.slider("Living Rooms", 1, 5, 1)
+    wc = st.slider("Bathrooms", 1, 5, 2)
+    area = st.number_input("Area (sq meters)", 50.0, 1000.0, 150.0)
+    street_width = st.number_input("Street Width (meters)", 5.0, 50.0, 20.0)
 
+# Column 3: Second set of input fields starting from "age"
 with col3:
-    with st.expander("🏡 Additional Details", expanded=True):
-        age = st.number_input("Age (years) 🗓️", 0, 100, 5, help="Age of the house in years")
-        street_direction = st.selectbox("Street Direction 🧭", [1, 2, 3, 4], help="Direction of the street")
-        ketchen = st.selectbox("Kitchen 🍳", [0, 1], format_func=lambda x: "Yes" if x == 1 else "No", help="Is there a kitchen?")
-        furnished = st.selectbox("Furnished 🪑", [0, 1], format_func=lambda x: "Yes" if x == 1 else "No", help="Is the house furnished?")
-
-        city_name_to_id = {
-            'جدة': 21,
-            'الرياض': 66,
-            'الخبر': 12,
-            'الدمام': 18,
-        }
-
-
-        district_data = [
+    age = st.number_input("Age (years)", 0, 100, 5)
+    street_direction = st.selectbox("Street Direction", [1, 2, 3, 4])
+    ketchen = st.selectbox("Kitchen", [0, 1])
+    furnished = st.selectbox("Furnished", [0, 1])
+    
+    district_data = [
     (3440, 'حي الاندلس', 'جدة'),
     (470, 'حي السويدي', 'الرياض'),
     (692, 'حي عتيقة', 'الرياض'),
@@ -467,50 +430,38 @@ with col3:
     (1266, 'حي الفرسان', 'الدمام'),
     (414, 'حي الحزم', 'الرياض'),
 ]
-
-        selected_district = st.selectbox(
-            "Select District 🏙️",
-            district_data,
-            format_func=lambda x: f"{x[1]} ({x[2]})"
-        )
-        district_id = selected_district[0]
-        city_id = city_name_to_id[selected_district[2]]
-
-# Column 4: Dashboard Images and Prediction
-with col4:
-    st.subheader("📊 Dashboard")
-    
-    # Display images
-    images = ["chart1.png", "chart2.png"]
-    for i, img in enumerate(images, 1):
-        image = Image.open(img)
-        st.image(image, caption=f"Chart {i}", use_column_width=True)
-    
-    # Prediction button
-    if st.button("🔮 Predict Price"):
-        with st.spinner('Calculating...'):
-            new_record = {
-                'beds': beds, 'livings': livings, 'wc': wc, 'area': area,
-                'street_width': street_width, 'age': age, 'street_direction': street_direction,
-                'ketchen': ketchen, 'furnished': furnished,
-                'location.lat': st.session_state['location_lat'],
-                'location.lng': st.session_state['location_lng'],
-                'city_id': city_id, 'district_id': district_id
-            }
-            predicted_price = predict_price(new_record)
-        
-        st.success('Prediction complete!')
-        st.metric(label="Expected Price", value=f"SAR {predicted_price:,.2f}")
-        
-        # Visualization of input data
-        fig = px.bar(
-    x=['Beds', 'Living Rooms', 'Bathrooms', 'Area', 'Street Width', 'Age', 'Street Direction', 'Kitchen', 'Furnished'],
-    y=[beds, livings, wc, area, street_width, age, street_direction, ketchen, furnished],
-    labels={'x': 'Features', 'y': 'Value'},
-    title='House Features'
-)
-        st.plotly_chart(fig)
-
-# Footer
-st.markdown("---")
-st.markdown("Created with ❤️ by Ahmed Rayyan")
+    # Map city names to city IDs
+    city_name_to_id = {
+        'جدة': 21,
+        'الرياض': 66,
+        'الخبر': 12,
+        'الدمام': 18,
+    }
+    selected_district = st.selectbox(
+        "Select District",
+        district_data,
+        format_func=lambda x: f"{x[1]} ({x[2]})"
+    )
+    district_id = selected_district[0]
+    city_id = city_name_to_id[selected_district[2]]
+    new_record = {
+        'beds': beds,
+        'livings': livings,
+        'wc': wc,
+        'area': area,
+        'street_width': street_width,
+        'age': age,
+        'street_direction': street_direction,
+        'ketchen': ketchen,
+        'furnished': furnished,
+        'location.lat': st.session_state['location_lat'],
+        'location.lng': st.session_state['location_lng'],
+        'city_id': city_id,
+        'district_id': district_id
+    }
+    # Move the button to the end of the input fields
+    # Add spacing before the Predict button
+    st.markdown("<div style='margin-left: 40px;'></div>", unsafe_allow_html=True)
+    if st.button("Predict"):
+        predicted_price = predict_price(new_record)
+        st.metric(label="السعر المتوقع", value=f" {predicted_price:,.2f} ر.س ")
