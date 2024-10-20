@@ -3,7 +3,6 @@ import joblib
 import pandas as pd
 import folium
 from PIL import Image
-import plotly.express as px
 
 from streamlit_folium import st_folium
 
@@ -506,13 +505,7 @@ with col4:
         
         # Visualization of input data
 
-        fig = px.bar(
-    x=['Beds', 'Living Rooms', 'Bathrooms', 'Area', 'Street Width', 'Age', 'Street Direction', 'Kitchen', 'Furnished'],
-    y=[beds, livings, wc, area, street_width, age, street_direction, ketchen, furnished],
-    labels={'x': 'Features', 'y': 'Value'},
-    title='House Features'
-)
-        st.plotly_chart(fig)
+       
        
 # Footer
 st.markdown("---")
