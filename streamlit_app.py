@@ -3,7 +3,6 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from PIL import Image
 
 # Page configuration
 st.set_page_config(page_title="House Price Prediction", layout="wide", initial_sidebar_state="collapsed")
@@ -479,12 +478,7 @@ with col3:
 with col4:
     st.subheader("📊 Dashboard")
     
-    # Display images
-    images = ["chart1.png", "chart2.png"]
-    for i, img in enumerate(images, 1):
-        image = Image.open(img)
-        st.image(image, caption=f"Chart {i}", use_column_width=True)
-    
+   
     # Prediction button
     if st.button("🔮 Predict Price"):
         with st.spinner('Calculating...'):
