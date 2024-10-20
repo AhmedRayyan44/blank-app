@@ -2,6 +2,8 @@ import streamlit as st
 import joblib
 import pandas as pd
 import folium
+from PIL import Image
+
 from streamlit_folium import st_folium
 
 # Page configuration
@@ -477,6 +479,12 @@ with col3:
 # Column 4: Dashboard Images and Prediction
 with col4:
     st.subheader("📊 Dashboard")
+
+    # Display images
+    images = ["chart1.png", "chart2.png"]
+    for i, img in enumerate(images, 1):
+        image = Image.open(img)
+        st.image(image, caption=f"Chart {i}", use_column_width=True)
     
    
     # Prediction button
