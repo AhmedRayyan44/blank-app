@@ -2,14 +2,14 @@ import streamlit as st
 import joblib
 import pandas as pd
 import folium
+from streamlit_folium import st_folium
+import plotly.express as px
 from PIL import Image
 
-from streamlit_folium import st_folium
+# إعداد الصفحة
+st.set_page_config(page_title="توقع أسعار المنازل", layout="wide", initial_sidebar_state="collapsed")
 
-# Page configuration
-st.set_page_config(page_title="House Price Prediction", layout="wide", initial_sidebar_state="collapsed")
-
-# Custom CSS
+# CSS مخصص
 st.markdown("""
 <style>
 .stApp {
@@ -30,73 +30,67 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Replace the old st.cache decorator
 @st.cache_resource
 def load_model():
     return joblib.load("lgbm.joblib")
 
 model = load_model()
 
-# Relevant features
+# الخصائص ذات الصلة
 relevant_features = [
     'beds', 'livings', 'wc', 'area', 'street_width', 'age', 'street_direction', 'ketchen',
     'furnished', 'location.lat', 'location.lng', 'city_id', 'district_id'
 ]
 
-# Prediction function
+# دالة التوقع
 def predict_price(new_record):
     new_record_df = pd.DataFrame([new_record])
     new_record_df = pd.get_dummies(new_record_df, drop_first=True)
     new_record_df = new_record_df.reindex(columns=relevant_features, fill_value=0)
     return model.predict(new_record_df)[0]
 
-# Initialize session state
+# تهيئة حالة الجلسة
 if 'location_lat' not in st.session_state:
     st.session_state['location_lat'] = 24.7136
 if 'location_lng' not in st.session_state:
     st.session_state['location_lng'] = 46.6753
 
-# Main app
-st.title("🏠 House Price Prediction Dashboard")
+# التطبيق الرئيسي
+st.title("🏠 لوحة توقع أسعار المنازل")
 
-# Create columns for layout
+# إنشاء أعمدة للتخطيط
 col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
 
-# Column 1: Map
+# العمود 1: الخريطة
 with col1:
-    st.subheader("📍 Select Location")
-    
-    # Create a more compact map
+    st.subheader("📍 اختر الموقع")
     m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6, width=400, height=300)
     marker = folium.Marker(
         location=[st.session_state['location_lat'], st.session_state['location_lng']],
         draggable=True
     )
     marker.add_to(m)
-    
-    # Display the map with fixed dimensions
     map_data = st_folium(m, width=400, height=300)
-    
     if map_data['last_clicked']:
         st.session_state['location_lat'] = map_data['last_clicked']['lat']
         st.session_state['location_lng'] = map_data['last_clicked']['lng']
-    
-    st.write(f"Selected Location: {st.session_state['location_lat']:.4f}, {st.session_state['location_lng']:.4f}")
-# Column 2 & 3: Input fields
+    st.write(f"الموقع المختار: {st.session_state['location_lat']:.4f}, {st.session_state['location_lng']:.4f}")
+
+# العمود 2 و 3: حقول الإدخال
 with col2:
-    with st.expander("🏠 House Details", expanded=True):
-        beds = st.slider("Beds 🛏️", 1, 10, 3, help="Number of bedrooms")
-        livings = st.slider("Living Rooms 🛋️", 1, 5, 1, help="Number of living rooms")
-        wc = st.slider("Bathrooms 🚽", 1, 5, 2, help="Number of bathrooms")
-        area = st.number_input("Area (sq meters) 📏", 50.0, 1000.0, 150.0, help="Total area in square meters")
-        street_width = st.number_input("Street Width (meters) 🛣️", 5.0, 50.0, 20.0, help="Width of the street in meters")
+    with st.expander("🏠 تفاصيل المنزل", expanded=True):
+        beds = st.slider("غرف النوم 🛏️", 1, 10, 3, help="عدد غرف النوم")
+        livings = st.slider("غرف المعيشة 🛋️", 1, 5, 1, help="عدد غرف المعيشة")
+        wc = st.slider("الحمامات 🚽", 1, 5, 2, help="عدد الحمامات")
+        area = st.number_input("المساحة (متر مربع) 📏", 50.0, 1000.0, 150.0, help="المساحة الكلية بالمتر المربع")
+        street_width = st.number_input("عرض الشارع (متر) 🛣️", 5.0, 50.0, 20.0, help="عرض الشارع بالمتر")
 
 with col3:
-    with st.expander("🏡 Additional Details", expanded=True):
-        age = st.number_input("Age (years) 🗓️", 0, 100, 5, help="Age of the house in years")
-        street_direction = st.selectbox("Street Direction 🧭", [1, 2, 3, 4], help="Direction of the street")
-        ketchen = st.selectbox("Kitchen 🍳", [0, 1], format_func=lambda x: "Yes" if x == 1 else "No", help="Is there a kitchen?")
-        furnished = st.selectbox("Furnished 🪑", [0, 1], format_func=lambda x: "Yes" if x == 1 else "No", help="Is the house furnished?")
+    with st.expander("🏡 تفاصيل إضافية", expanded=True):
+        age = st.number_input("العمر (سنوات) 🗓️", 0, 100, 5, help="عمر المنزل بالسنوات")
+        street_direction = st.selectbox("اتجاه الشارع 🧭", [1, 2, 3, 4], help="اتجاه الشارع")
+        ketchen = st.selectbox("المطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا", help="هل يوجد مطبخ؟")
+        furnished = st.selectbox("مفروش 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا", help="هل المنزل مفروش؟")
 
         city_name_to_id = {
             'جدة': 21,
@@ -476,20 +470,18 @@ with col3:
         district_id = selected_district[0]
         city_id = city_name_to_id[selected_district[2]]
 
-# Column 4: Dashboard Images and Prediction
+# العمود 4: صور لوحة المعلومات والتوقع
 with col4:
-    st.subheader("📊 Dashboard")
-
-    # Display images
+    st.subheader("📊 لوحة المعلومات")
+    # عرض الصور
     images = ["chart1.png", "chart2.png"]
     for i, img in enumerate(images, 1):
         image = Image.open(img)
-        st.image(image, caption=f"Chart {i}", use_column_width=True)
+        st.image(image, caption=f"الرسم البياني {i}", use_column_width=True)
     
-   
-    # Prediction button
-    if st.button("🔮 Predict Price"):
-        with st.spinner('Calculating...'):
+    # زر التوقع
+    if st.button("🔮 توقع السعر"):
+        with st.spinner('جاري الحساب...'):
             new_record = {
                 'beds': beds, 'livings': livings, 'wc': wc, 'area': area,
                 'street_width': street_width, 'age': age, 'street_direction': street_direction,
@@ -499,14 +491,18 @@ with col4:
                 'city_id': city_id, 'district_id': district_id
             }
             predicted_price = predict_price(new_record)
+        st.success('تم التوقع بنجاح!')
+        st.metric(label="السعر المتوقع", value=f"ريال {predicted_price:,.2f}")
         
-        st.success('Prediction complete!')
-        st.metric(label="Expected Price", value=f"SAR {predicted_price:,.2f}")
-        
-        # Visualization of input data
+        # تصور البيانات المدخلة
+        fig = px.bar(
+            x=['غرف النوم', 'غرف المعيشة', 'الحمامات', 'المساحة', 'عرض الشارع', 'العمر', 'اتجاه الشارع', 'المطبخ', 'مفروش'],
+            y=[beds, livings, wc, area, street_width, age, street_direction, ketchen, furnished],
+            labels={'x': 'الخصائص', 'y': 'القيمة'},
+            title='خصائص المنزل'
+        )
+        st.plotly_chart(fig)
 
-       
-       
-# Footer
+# التذييل
 st.markdown("---")
-st.markdown("Created with ❤️ by Ahmed Rayyan")
+st.markdown("تم إنشاؤه بكل ❤️ بواسطة أحمد ريان")
