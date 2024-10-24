@@ -495,13 +495,7 @@ with col4:
         st.metric(label="السعر المتوقع", value=f"ريال {predicted_price:,.2f}")
         
         # تصور البيانات المدخلة
-        fig = px.bar(
-            x=['غرف النوم', 'غرف المعيشة', 'الحمامات', 'المساحة', 'عرض الشارع', 'العمر', 'اتجاه الشارع', 'المطبخ', 'مفروش'],
-            y=[beds, livings, wc, area, street_width, age, street_direction, ketchen, furnished],
-            labels={'x': 'الخصائص', 'y': 'القيمة'},
-            title='خصائص المنزل'
-        )
-        st.plotly_chart(fig)
+       
 
 # التذييل
 st.markdown("---")
