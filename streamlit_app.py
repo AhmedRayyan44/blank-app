@@ -3,13 +3,12 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-
 from PIL import Image
 
-# إعداد الصفحة
+# Set up the page configuration
 st.set_page_config(page_title="توقع أسعار المنازل", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS مخصص
+# Custom CSS for styling
 st.markdown("""
 <style>
 .stApp {
@@ -36,71 +35,83 @@ def load_model():
 
 model = load_model()
 
-# الخصائص ذات الصلة
+# Relevant features for prediction
 relevant_features = [
     'beds', 'livings', 'wc', 'area', 'street_width', 'age', 'street_direction', 'ketchen',
     'furnished', 'location.lat', 'location.lng', 'city_id', 'district_id'
 ]
 
-# دالة التوقع
+# Prediction function
 def predict_price(new_record):
     new_record_df = pd.DataFrame([new_record])
     new_record_df = pd.get_dummies(new_record_df, drop_first=True)
     new_record_df = new_record_df.reindex(columns=relevant_features, fill_value=0)
     return model.predict(new_record_df)[0]
 
-# تهيئة حالة الجلسة
+# Initialize session state for location
 if 'location_lat' not in st.session_state:
     st.session_state['location_lat'] = 24.7136
 if 'location_lng' not in st.session_state:
     st.session_state['location_lng'] = 46.6753
 
-# التطبيق الرئيسي
-st.title("🏠 لوحة توقع أسعار المنازل")
+# Main application
+st.title("🏠 توقع أسعار المنازل")
 
-# إنشاء أعمدة للتخطيط
-col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+# Create layout for the dashboard
+col1, col2 = st.columns(2)
 
-# العمود 1: الخريطة
+# Column 1: Map and Location Selection
 with col1:
     st.subheader("📍 اختر الموقع")
-    m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6, width=400, height=300)
+    # Folium map
+    m = folium.Map(location=[st.session_state['location_lat'], st.session_state['location_lng']], zoom_start=6)
     marker = folium.Marker(
         location=[st.session_state['location_lat'], st.session_state['location_lng']],
         draggable=True
     )
     marker.add_to(m)
-    map_data = st_folium(m, width=400, height=300)
+    map_data = st_folium(m, width=700, height=400)
     if map_data['last_clicked']:
         st.session_state['location_lat'] = map_data['last_clicked']['lat']
         st.session_state['location_lng'] = map_data['last_clicked']['lng']
-    st.write(f"الموقع المختار: {st.session_state['location_lat']:.4f}, {st.session_state['location_lng']:.4f}")
+    st.write(f"الموقع المحدد: {st.session_state['location_lat']:.4f}, {st.session_state['location_lng']:.4f}")
 
-# العمود 2 و 3: حقول الإدخال
+# Column 2: Input Form
 with col2:
-    with st.expander("🏠 تفاصيل المنزل", expanded=True):
-        beds = st.slider("غرف النوم 🛏️", 1, 10, 3, help="عدد غرف النوم")
-        livings = st.slider("غرف المعيشة 🛋️", 1, 5, 1, help="عدد غرف المعيشة")
-        wc = st.slider("الحمامات 🚽", 1, 5, 2, help="عدد الحمامات")
-        area = st.number_input("المساحة (متر مربع) 📏", 50.0, 1000.0, 150.0, help="المساحة الكلية بالمتر المربع")
-        street_width = st.number_input("عرض الشارع (متر) 🛣️", 5.0, 50.0, 20.0, help="عرض الشارع بالمتر")
+    st.subheader("🏠 أدخل تفاصيل المنزل")
+    # Manual location input
+    st.subheader("📍 إدخال الموقع يدويًا")
+    manual_lat = st.number_input("أدخل خط العرض:", value=st.session_state['location_lat'], format="%.6f")
+    manual_lng = st.number_input("أدخل خط الطول:", value=st.session_state['location_lng'], format="%.6f")
+    if manual_lat and manual_lng:
+        st.session_state['location_lat'] = manual_lat
+        st.session_state['location_lng'] = manual_lng
+        st.write(f"الموقع المدخل يدويًا: {manual_lat:.4f}, {manual_lng:.4f}")
 
-with col3:
-    with st.expander("🏡 تفاصيل إضافية", expanded=True):
-        age = st.number_input("العمر (سنوات) 🗓️", 0, 100, 5, help="عمر المنزل بالسنوات")
-        street_direction = st.selectbox("اتجاه الشارع 🧭", [1, 2, 3, 4], help="اتجاه الشارع")
-        ketchen = st.selectbox("المطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا", help="هل يوجد مطبخ؟")
-        furnished = st.selectbox("مفروش 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا", help="هل المنزل مفروش؟")
+    # Create a form for house details
+    with st.form("house_details_form"):
+        # Create uniform input fields
+        col_a, col_b = st.columns(2)
+        with col_a:
+            beds = st.slider("عدد غرف النوم 🛏️", 1, 10, 3)
+            livings = st.slider("عدد غرف المعيشة 🛋️", 1, 5, 1)
+            wc = st.slider("عدد الحمامات 🚽", 1, 5, 2)
+            area = st.number_input("المساحة (متر مربع) 📏", 50.0, 1000.0, 150.0)
+        with col_b:
+            street_width = st.number_input("عرض الشارع (متر) 🛣️", 5.0, 50.0, 20.0)
+            age = st.number_input("العمر (سنوات) 🗓️", 0, 100, 5)
+            street_direction = st.selectbox("اتجاه الشارع 🧭", [1, 2, 3, 4])
+            ketchen = st.selectbox("مطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
+            furnished = st.selectbox("مفروش 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
 
+        # District selection
         city_name_to_id = {
             'جدة': 21,
             'الرياض': 66,
             'الخبر': 12,
             'الدمام': 18,
         }
-
-
-        district_data = [
+       district_data = [
     (3440, 'حي الاندلس', 'جدة'),
     (470, 'حي السويدي', 'الرياض'),
     (692, 'حي عتيقة', 'الرياض'),
@@ -461,42 +472,38 @@ with col3:
     (1266, 'حي الفرسان', 'الدمام'),
     (414, 'حي الحزم', 'الرياض'),
 ]
-
+        
         selected_district = st.selectbox(
-            "Select District 🏙️",
+            "اختر الحي 🏙️",
             district_data,
             format_func=lambda x: f"{x[1]} ({x[2]})"
         )
         district_id = selected_district[0]
         city_id = city_name_to_id[selected_district[2]]
 
-# العمود 4: صور لوحة المعلومات والتوقع
-with col4:
-    st.subheader("📊 لوحة المعلومات")
-    # عرض الصور
-    images = ["chart1.png", "chart2.png"]
-    for i, img in enumerate(images, 1):
-        image = Image.open(img)
-        st.image(image, caption=f"الرسم البياني {i}", use_column_width=True)
-    
-    # زر التوقع
-    if st.button("🔮 توقع السعر"):
-        with st.spinner('جاري الحساب...'):
-            new_record = {
-                'beds': beds, 'livings': livings, 'wc': wc, 'area': area,
-                'street_width': street_width, 'age': age, 'street_direction': street_direction,
-                'ketchen': ketchen, 'furnished': furnished,
-                'location.lat': st.session_state['location_lat'],
-                'location.lng': st.session_state['location_lng'],
-                'city_id': city_id, 'district_id': district_id
-            }
-            predicted_price = predict_price(new_record)
-        st.success('تم التوقع بنجاح!')
-        st.metric(label="السعر المتوقع", value=f"ريال {predicted_price:,.2f}")
-        
-        # تصور البيانات المدخلة
-       
+        # Submit button
+        submitted = st.form_submit_button("🔮 توقع السعر")
+        if submitted:
+            with st.spinner('جاري الحساب...'):
+                new_record = {
+                    'beds': beds, 'livings': livings, 'wc': wc, 'area': area,
+                    'street_width': street_width, 'age': age, 'street_direction': street_direction,
+                    'ketchen': ketchen, 'furnished': furnished,
+                    'location.lat': st.session_state['location_lat'],
+                    'location.lng': st.session_state['location_lng'],
+                    'city_id': city_id, 'district_id': district_id
+                }
+                predicted_price = predict_price(new_record)
+            st.success('تمت عملية التوقع بنجاح!')
+            st.metric(label="السعر المتوقع", value=f"ريال {predicted_price:,.2f}")
 
-# التذييل
+# Bottom section: Visualization
+st.header("📊 رؤى")
+images = ["chart1.png", "chart2.png"]
+for i, img in enumerate(images, 1):
+    image = Image.open(img)
+    st.image(image, caption=f"الرسم البياني {i}", use_column_width=True)
+
+# Footer
 st.markdown("---")
-st.markdown("تم إنشاؤه بكل ❤️ بواسطة أحمد ريان")
+st.markdown("تم الإنشاء مع ❤️ بواسطة أحمد ريان")
