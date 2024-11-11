@@ -3,8 +3,9 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import plotly.express as px
 from PIL import Image
-#
+
 # Set up the page configuration
 st.set_page_config(page_title="توقع أسعار المنازل", layout="wide", initial_sidebar_state="collapsed")
 
@@ -98,9 +99,26 @@ with col2:
             wc = st.slider("عدد الحمامات 🚽", 1, 5, 2)
             area = st.number_input("المساحة (متر مربع) 📏", 50.0, 1000.0, 150.0)
         with col_b:
-            street_width = st.number_input("عرض الشارع (متر) 🛣️", 5.0, 50.0, 20.0)
+            # Replace the existing street_width input with a selectbox
+            street_width = st.selectbox("عرض الشارع (متر) 🛣️", [10, 12, 15, 18, 20, 25], index=2)  # Default to 20
+
+
             age = st.number_input("العمر (سنوات) 🗓️", 0, 100, 5)
-            street_direction = st.selectbox("اتجاه الشارع 🧭", [1, 2, 3, 4])
+            street_direction = st.selectbox("اتجاه الشارع 🧭", [
+    "1 واجهة شمالية",
+    "2 واجهة شرقية",
+    "3 واجهة غربية",
+    "4 واجهة جنوبية",
+    "5 واجهة شمالية شرقية",
+    "6 واجهة جنوبية شرقية",
+    "7 واجهة جنوبية غربية",
+    "8 واجهة شمالية غربية",
+    "9 الفلة تقع على ثلاثة شوارع",
+    "10 الفلة تقع على أربعة شوارع"
+])
+
+
+
             ketchen = st.selectbox("مطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
             furnished = st.selectbox("مفروش 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
 
@@ -487,7 +505,9 @@ with col2:
             with st.spinner('جاري الحساب...'):
                 new_record = {
                     'beds': beds, 'livings': livings, 'wc': wc, 'area': area,
-                    'street_width': street_width, 'age': age, 'street_direction': street_direction,
+                    'street_width': street_width,  # Updated to be a list
+
+                    'age': age, 'street_direction': street_direction,
                     'ketchen': ketchen, 'furnished': furnished,
                     'location.lat': st.session_state['location_lat'],
                     'location.lng': st.session_state['location_lng'],
