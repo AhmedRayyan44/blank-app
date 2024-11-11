@@ -3,7 +3,6 @@ import joblib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import plotly.express as px
 from PIL import Image
 
 # Set up the page configuration
