@@ -55,7 +55,7 @@ if 'location_lng' not in st.session_state:
     st.session_state['location_lng'] = 46.6753
 
 # Main application
-st.title("🏠 توقع أسعار المنازل")
+st.title("🏠  لوحة المعلومات العقارية  ")
 
 # Create layout for the dashboard
 col1, col2 = st.columns(2)
@@ -514,7 +514,7 @@ with col2:
                 }
                 predicted_price = predict_price(new_record)
             st.success('تمت عملية التوقع بنجاح!')
-            st.metric(label="السعر المتوقع", value=f"ريال {predicted_price:,.2f}")
+            st.metric(label=" السعر التقريبي ", value=f"ريال {predicted_price:,.2f}")
 
 # Bottom section: Visualization
 st.header("📊 رؤى")
