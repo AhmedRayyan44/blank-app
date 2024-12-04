@@ -118,8 +118,8 @@ with col2:
 
 
 
-            ketchen = st.selectbox("مطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
-            furnished = st.selectbox("مفروش 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
+            ketchen = st.selectbox("وجود المطبخ 🍳", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
+            furnished = st.selectbox("الفلة مؤثثة 🪑", [0, 1], format_func=lambda x: "نعم" if x == 1 else "لا")
 
         # District selection
         city_name_to_id = {
